@@ -17,6 +17,8 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,12 +29,15 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.semantics.Role.Companion.Image
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ActivityCompat
@@ -45,6 +50,7 @@ import java.io.File
 import java.util.concurrent.Executor
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import kotlin.math.roundToInt
 
 
 class MainActivity : ComponentActivity() {
@@ -71,10 +77,12 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @OptIn(ExperimentalComposeUiApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             DualCameraTheme {
+
                 if (shouldShowBackCamera.value) {
                     BackCameraView(
                         outputDirectory = outputDirectory,
@@ -95,21 +103,36 @@ class MainActivity : ComponentActivity() {
                     Image(
                         painter = rememberImagePainter(photoBackCameraUri),
                         contentDescription = null,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier
+                            .height(2000.dp)
+                            .fillMaxWidth()
                     )
-                    Box(modifier = Modifier
-                        .height(100.dp)
-                        .width(60.dp)
-                        .padding(top = 16.dp, start = 16.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .border(2.dp, Color.Black, RoundedCornerShape(16.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Image(
-                            painter = rememberImagePainter(photoFrontCameraUri),
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxSize()
-                        )
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        var offsetX by remember { mutableStateOf(0f) }
+                        var offsetY by remember { mutableStateOf(0f) }
+
+                        Box(modifier = Modifier
+                            .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
+                            .height(200.dp)
+                            .width(150.dp)
+                            .padding(top = 16.dp, start = 16.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .border(2.dp, Color.Black, RoundedCornerShape(16.dp))
+                            .pointerInput(Unit) {
+                                detectDragGestures { change, dragAmount ->
+                                    change.consume()
+                                    offsetX += dragAmount.x
+                                    offsetY += dragAmount.y
+                                }
+                            },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = rememberImagePainter(photoFrontCameraUri),
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
                     }
                 }
             }
